@@ -1,15 +1,16 @@
 package org.kiroff.email_notifications;
 
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.kiroff.kafka.events.ProductCreatedEvent;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,60 +18,43 @@ import java.util.Map;
 @Configuration
 public class KafkaConfig
 {
-    @Value("${spring.kafka.producer.bootstrap-servers}")
+    @Value("${spring.kafka.consumer.bootstrap-servers}")
     private String bootstrapServers;
-    @Value("${spring.kafka.producer.key-serializer}")
-    private String keySerializerClassConfig;
-    @Value("${spring.kafka.producer.value-serializer}")
-    private String valueSerializerClassConfig;
-    @Value("${spring.kafka.producer.acks}")
-    private String acksConfig;
-    @Value("${spring.kafka.producer.properties.delivery.timeout.ms}")
-    private String deliveryTimeoutMsConfig;
-    @Value("${spring.kafka.producer.properties.linger.ms}")
-    private String lingerMsConfig;
-    @Value("${spring.kafka.producer.properties.request.timeout.ms}")
-    private String requestTimeoutMsConfig;
-    @Value("${spring.kafka.producer.properties.enable.idempotence}")
-    private String enableIdempotenceConfig;
-    @Value("${spring.kafka.producer.properties.max.in.flight.requests.per.connection}")
-    private String maxInFlightRequestsPerConnection;
+    @Value("${spring.kafka.consumer.key-deserializer}")
+    private String keyDeserializerClassConfig;
+    @Value("${spring.kafka.consumer.value-deserializer}")
+    private String valueDeserializerClassConfig;
+    @Value("${spring.kafka.consumer.group-id}")
+    private String groupId;
+
+    @Autowired
+    Environment environment;
 
     @Bean
-    Map<String, Object> producerConfigs()
+    Map<String, Object> consumerConfigs()
     {
         final Map<String, Object> props = new HashMap<>();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerClassConfig);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClassConfig);
-        props.put(ProducerConfig.ACKS_CONFIG, acksConfig);
-        props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeoutMsConfig);
-        props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMsConfig);
-        props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMsConfig);
-        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, enableIdempotenceConfig);
-        props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection);
-//        props.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);//Default
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, environment.getProperty("spring.kafka.consumer.bootstrap-servers"));
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, keyDeserializerClassConfig);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializerClassConfig);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, environment.getProperty("spring.kafka.consumer.group-id"));
+        props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES,
+                environment.getProperty("spring.kafka.consumer.properties.spring.json.trusted.packages"));
         return props;
     }
 
     @Bean
-    ProducerFactory<String, ProductCreatedEvent> producerFactory()
+    ConsumerFactory<String, ProductCreatedEvent> consumerFactory()
     {
-        return new DefaultKafkaProducerFactory<>(producerConfigs());
+        return new DefaultKafkaConsumerFactory<>(consumerConfigs());
     }
 
     @Bean
-    KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate()
+    ConcurrentKafkaListenerContainerFactory<String, ProductCreatedEvent> kafkaConcurrentKafkaListenerContainerFactory()
     {
-        return new KafkaTemplate<>(producerFactory());
+        final ConcurrentKafkaListenerContainerFactory<String, ProductCreatedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
     }
 
-    @Bean
-    NewTopic createTopic() {
-        return TopicBuilder.name("product-created-events-topic")
-                .partitions(3)
-                .replicas(3)
-                .configs(Map.of("min.insync.replicas", "2"))
-                .build();
-    }
 }

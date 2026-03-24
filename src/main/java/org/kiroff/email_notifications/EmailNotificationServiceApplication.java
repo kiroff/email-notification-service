@@ -1,4 +1,4 @@
-package org.kiroff.email_notification_service;
+package org.kiroff.email_notifications;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class EmailNotificationServiceApplication
 {
 
-    public static void main(String[] args)
+    static void main(String[] args)
     {
         SpringApplication.run(EmailNotificationServiceApplication.class, args);
     }

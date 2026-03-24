@@ -13,4 +13,4 @@ spring:
         spring:
           json:
             trusted:
-              packages: "*"
+              packages: org.kiroff.kafka.events

@@ -1,4 +1,4 @@
-package org.kiroff.email_notification_service;
+package org.kiroff.email_notifications;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
