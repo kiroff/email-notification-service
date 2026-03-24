@@ -16,6 +16,6 @@ public class PackageCreatedEventHandler
     @KafkaHandler
     public void handle(ProductCreatedEvent event)
     {
-        logger.warn("Received product created event: {}", event.getTitle());
+        logger.info("Received product created event: {}", event.getTitle());
     }
 }
