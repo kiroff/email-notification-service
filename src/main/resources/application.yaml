@@ -1,0 +1,16 @@
+server:
+  port: 8889
+spring:
+  application:
+    name: email-notifications
+  kafka:
+    consumer:
+      bootstrap-servers: host.docker.internal:9092,host.docker.internal:9094,host.docker.internal:9096
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      group-id: product-created-event
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "*"
