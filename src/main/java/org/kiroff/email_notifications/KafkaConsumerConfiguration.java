@@ -3,6 +3,8 @@ package org.kiroff.email_notifications;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.kiroff.kafka.errors.NotRetryableException;
+import org.kiroff.kafka.errors.RetryableException;
 import org.kiroff.kafka.events.ProductCreatedEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,12 +21,13 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class KafkaConfig
+public class KafkaConsumerConfiguration
 {
     @Value("${spring.kafka.consumer.bootstrap-servers}")
     private String bootstrapServers;
@@ -60,7 +63,10 @@ public class KafkaConfig
     @Bean
     ConcurrentKafkaListenerContainerFactory<String, ProductCreatedEvent> kafkaConcurrentKafkaListenerContainerFactory(Environment environment, KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate)
     {
-        final DefaultErrorHandler errorHandler = new DefaultErrorHandler(new DeadLetterPublishingRecoverer(kafkaTemplate));
+        final DefaultErrorHandler errorHandler = new DefaultErrorHandler(new DeadLetterPublishingRecoverer(kafkaTemplate),
+                new FixedBackOff(5000, 3));
+        errorHandler.addNotRetryableExceptions(NotRetryableException.class);
+        errorHandler.addRetryableExceptions(RetryableException.class);
         final ConcurrentKafkaListenerContainerFactory<String, ProductCreatedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory(environment));
         factory.setCommonErrorHandler(errorHandler);
