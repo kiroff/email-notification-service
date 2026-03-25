@@ -8,7 +8,9 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
-@KafkaListener(topics = {"product-created-events-topic"}, groupId = "product-created-event")
+@KafkaListener(topics = {"product-created-events-topic"},
+        groupId = "product-created-event",
+        containerFactory = "kafkaConcurrentKafkaListenerContainerFactory")//Should match the name in KafkaConfig, by default Spring uses a bean named kafkaListenerContainerFactory.
 public class PackageCreatedEventHandler
 {
     private final Logger logger = LoggerFactory.getLogger(PackageCreatedEventHandler.class);
